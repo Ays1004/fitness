@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AreaLineChart, BarChart, ProgressRing, Sparkline } from "@/components/charts";
 import {
@@ -33,7 +34,6 @@ const RANGES = [
   { label: "7D", days: 7 },
   { label: "30D", days: 30 },
   { label: "90D", days: 90 },
-  { label: "1Y", days: 365 },
 ];
 
 type MetricKey =
@@ -313,6 +313,7 @@ export default function Dashboard({
   const [loading, setLoading] = useState(false);
   const [metric, setMetric] = useState<MetricKey>("steps");
   const [error, setError] = useState<string | null>(initialError ?? null);
+  const [generatedLabel, setGeneratedLabel] = useState<string | null>(null);
 
   const fetchData = useCallback(async (nextDays: number) => {
     setLoading(true);
@@ -330,6 +331,12 @@ export default function Dashboard({
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
+
+  // Render the locale-formatted timestamp only on the client to avoid a
+  // server/client hydration mismatch.
+  useEffect(() => {
+    setGeneratedLabel(new Date(data.generatedAt).toLocaleString());
+  }, [data.generatedAt]);
 
   const onRange = (nextDays: number) => {
     setDays(nextDays);
@@ -786,9 +793,20 @@ export default function Dashboard({
         ))}
       </div>
 
-      <footer className="mt-10 border-t border-white/5 pt-6 text-center text-xs text-zinc-600">
-        Pulse · {isDemo ? "Demo dataset" : "Live Google Fit data"} · Generated{" "}
-        {new Date(data.generatedAt).toLocaleString()}
+      <footer className="mt-10 flex flex-col items-center gap-2 border-t border-white/5 pt-6 text-center text-xs text-zinc-600">
+        <div className="flex items-center gap-4">
+          <Link href="/privacy" className="hover:text-zinc-400">
+            Privacy Policy
+          </Link>
+          <span>·</span>
+          <Link href="/terms" className="hover:text-zinc-400">
+            Terms of Service
+          </Link>
+        </div>
+        <div suppressHydrationWarning>
+          Pulse · {isDemo ? "Demo dataset" : "Live Google Fit data"}
+          {generatedLabel ? ` · Generated ${generatedLabel}` : ""}
+        </div>
       </footer>
     </div>
   );
